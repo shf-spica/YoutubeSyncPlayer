@@ -373,7 +373,7 @@ class SyncPlayer {
             height: '100%',
             width: '100%',
             videoId: videoId,
-            host: 'https://www.youtube-nocookie.com',
+            host: 'https://www.youtube.com',
             playerVars: { 'playsinline': 1, 'rel': 0, 'autoplay': 0 },
             events: {
                 'onReady': (e) => this.onReady(e),
