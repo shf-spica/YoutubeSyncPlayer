@@ -34,7 +34,7 @@ function onYouTubeIframeAPIReady() {
     // Default Fallback if no URL params
     if (!hasParams) {
         syncManager.addPlayer('kbNdx0yqbZE'); // Primary
-        syncManager.addPlayer('fckdimdQ2ak', 700); // Secondary 1
+        syncManager.addPlayer('fckdimdQ2ak', 550); // Secondary 1
     }
 }
 
