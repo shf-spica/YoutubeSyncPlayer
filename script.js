@@ -34,7 +34,7 @@ function onYouTubeIframeAPIReady() {
     // Default Fallback if no URL params
     if (!hasParams) {
         syncManager.addPlayer('kbNdx0yqbZE'); // Primary
-        syncManager.addPlayer('fckdimdQ2ak', 550); // Secondary 1
+        syncManager.addPlayer('fckdimdQ2ak', 300); // Secondary 1
     }
 }
 
@@ -54,7 +54,7 @@ class SyncManager {
         this.interval = setInterval(() => this.updateLoop(), 100);
     }
 
-    addPlayer(videoId, initialOffset = 0) {
+    addPlayer(videoId, initialOffset = 300) {
         const id = this.players.length; // Simple ID, index-based for now but we use uniqueId internally too
         const player = new SyncPlayer(id, videoId, this, initialOffset);
         this.players.push(player);

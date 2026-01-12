@@ -64,6 +64,8 @@ button {
     padding: var(--spacing);
     overflow-y: auto;
     align-items: start;
+    align-content: start;
+    /* Fix vertical gaps when zoomed out */
     /* Prevent cards from stretching vertically */
 }
 
