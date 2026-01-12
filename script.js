@@ -13,8 +13,8 @@ let syncManager;
 function onYouTubeIframeAPIReady() {
     syncManager = new SyncManager();
     // Initialize default players
-    syncManager.addPlayer('fckdimdQ2ak'); // Primary
-    syncManager.addPlayer('kbNdx0yqbZE'); // Secondary 1
+    syncManager.addPlayer('kbNdx0yqbZE'); // Primary
+    syncManager.addPlayer('fckdimdQ2ak', 680); // Secondary 1
 }
 
 /**
@@ -36,9 +36,9 @@ class SyncManager {
         this.interval = setInterval(() => this.updateLoop(), 100);
     }
 
-    addPlayer(videoId) {
+    addPlayer(videoId, initialOffset = 0) {
         const id = this.players.length; // Simple ID, index-based for now but we use uniqueId internally too
-        const player = new SyncPlayer(id, videoId, this);
+        const player = new SyncPlayer(id, videoId, this, initialOffset);
         this.players.push(player);
 
         if (this.players.length === 1) {
@@ -150,7 +150,13 @@ class SyncManager {
         };
 
         this.playAll = () => {
-            this.players.forEach(p => p.play());
+            if (!this.primary) return;
+            // Play Primary
+            this.primary.play();
+            // Play Secondaries immediately
+            this.players.forEach(p => {
+                if (p !== this.primary) p.play();
+            });
         };
 
         this.pauseAll = () => {
@@ -188,11 +194,11 @@ class SyncManager {
  * SyncPlayer: Manages a single Player UI & Logic
  */
 class SyncPlayer {
-    constructor(id, initialVideoId, manager) {
+    constructor(id, initialVideoId, manager, initialOffset = 0) {
         this.manager = manager;
         this.uniqueId = `player-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         this.player = null;
-        this.syncOffset = 0;
+        this.syncOffset = initialOffset;
         this.lastSeekTime = 0;
         this.state = -1;
         this.playbackRate = 1.0;
@@ -203,7 +209,10 @@ class SyncPlayer {
 
         // Defer player creation slightly to ensure DOM is ready? 
         // No, createElement appends synchronously.
-        this.initPlayer(initialVideoId);
+        const vid = extractVideoId(initialVideoId);
+        if (vid) {
+            this.initPlayer(vid);
+        }
     }
 
     createElement(initialVideoId) {
@@ -229,6 +238,7 @@ class SyncPlayer {
 
         // New Offset Controls
         this.offsetInput = container.querySelector('.offset-input');
+        this.offsetInput.value = this.syncOffset;
 
         container.querySelector('[data-action="offset-dec-100"]').addEventListener('click', () => this.adjustOffset(-100));
         container.querySelector('[data-action="offset-dec-10"]').addEventListener('click', () => this.adjustOffset(-10));
@@ -278,8 +288,16 @@ class SyncPlayer {
     }
 
     loadFromInput() {
-        const vid = this.input.value;
-        if (!vid) return;
+        const inputVal = this.input.value;
+        const vid = extractVideoId(inputVal);
+
+        if (!vid) {
+            if (inputVal) console.warn("Invalid YouTube ID or URL:", inputVal);
+            return;
+        }
+
+        // Update input to show the clean ID (optional, but good for clarity)
+        this.input.value = vid;
 
         if (this.player && this.player.cueVideoById) {
             this.player.cueVideoById(vid);
@@ -418,8 +436,8 @@ class SyncPlayer {
         // Cooldown
         if (Date.now() - this.lastSeekTime < 1000) return;
 
-        // Revert to strict threshold (0.15) and immediate correction
-        const THRESHOLD = 0.15;
+        // Strict threshold (0.04) to catch small offsets like 80ms
+        const THRESHOLD = 0.04;
 
         if (Math.abs(diff) > THRESHOLD) {
             console.log(`[Player Drift] Drift: ${diff.toFixed(3)}. Correcting.`);
@@ -445,4 +463,16 @@ function pad(num, size = 2) {
     let s = num + "";
     while (s.length < size) s = "0" + s;
     return s;
+}
+
+function extractVideoId(input) {
+    if (!input) return null;
+    // If it's already an 11-char ID (and looks like one), return it.
+    if (/^[a-zA-Z0-9_-]{11}$/.test(input)) {
+        return input;
+    }
+    // Regex for standard and share URLs
+    const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+    const match = input.match(regex);
+    return match ? match[1] : null; // Return ID or null if failed
 }
