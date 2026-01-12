@@ -12,9 +12,29 @@ let syncManager;
 
 function onYouTubeIframeAPIReady() {
     syncManager = new SyncManager();
-    // Initialize default players
-    syncManager.addPlayer('kbNdx0yqbZE'); // Primary
-    syncManager.addPlayer('fckdimdQ2ak', 700); // Secondary 1
+
+    // Parse URL Parameters
+    const params = new URLSearchParams(window.location.search);
+    let hasParams = false;
+    let i = 1;
+
+    // Loop through v1, v2, v3...
+    while (params.has(`v${i}`)) {
+        hasParams = true;
+        const vid = extractVideoId(params.get(`v${i}`));
+        const offset = parseInt(params.get(`o${i}`)) || 0;
+
+        if (vid) {
+            syncManager.addPlayer(vid, offset);
+        }
+        i++;
+    }
+
+    // Default Fallback if no URL params
+    if (!hasParams) {
+        syncManager.addPlayer('kbNdx0yqbZE'); // Primary
+        syncManager.addPlayer('fckdimdQ2ak', 680); // Secondary 1
+    }
 }
 
 /**
@@ -166,6 +186,33 @@ class SyncManager {
         const loadBtn = document.getElementById('load-videos-btn');
         if (loadBtn) loadBtn.addEventListener('click', () => {
             this.players.forEach(p => p.loadFromInput());
+        });
+
+        const shareBtn = document.getElementById('share-btn');
+        if (shareBtn) shareBtn.addEventListener('click', () => {
+            const baseUrl = window.location.origin + window.location.pathname;
+            const params = new URLSearchParams();
+
+            this.players.forEach((p, index) => {
+                const i = index + 1;
+                const vid = extractVideoId(p.input.value);
+                if (vid) {
+                    params.set(`v${i}`, vid);
+                    if (p.syncOffset !== 0) {
+                        params.set(`o${i}`, p.syncOffset);
+                    }
+                }
+            });
+
+            const shareUrl = `${baseUrl}?${params.toString()}`;
+            navigator.clipboard.writeText(shareUrl).then(() => {
+                const originalText = shareBtn.textContent;
+                shareBtn.textContent = "Copied!";
+                setTimeout(() => shareBtn.textContent = originalText, 2000);
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+                prompt("Copy this link:", shareUrl);
+            });
         });
 
         document.getElementById('btn-play').addEventListener('click', () => this.playAll());
@@ -323,7 +370,6 @@ class SyncPlayer {
     onRateChange(e) {
         this.playbackRate = e.data;
         if (this === this.manager.primary) {
-            // Broadcast speed change to secondaries
             this.manager.broadcastRate(this.playbackRate);
         }
     }
