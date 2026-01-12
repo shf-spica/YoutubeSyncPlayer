@@ -45,10 +45,7 @@ class SyncManager {
         this.players = [];
         this.primary = null;
         this.isPlaying = false;
-
-        this.players = [];
-        this.primary = null;
-        this.isPlaying = false;
+        this.syncThreshold = 0.04; // Default 40ms
 
         this.setupGlobalControls();
 
@@ -221,7 +218,16 @@ class SyncManager {
         document.querySelector('[data-action="frame-back"]').addEventListener('click', () => this.broadcastSeek(-FRAME_TIME / 1000));
         document.querySelector('[data-action="frame-fwd"]').addEventListener('click', () => this.broadcastSeek(FRAME_TIME / 1000));
 
-        // Legacy Sync buttons removed
+        // Sync Threshold Slider
+        const threshInput = document.getElementById('threshold-input');
+        const threshVal = document.getElementById('threshold-val');
+        if (threshInput && threshVal) {
+            threshInput.addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                this.syncThreshold = val;
+                threshVal.textContent = val.toFixed(2);
+            });
+        }
     }
 
     updateGlobalIcons(isPlaying) {
@@ -482,8 +488,8 @@ class SyncPlayer {
         // Cooldown
         if (Date.now() - this.lastSeekTime < 2000) return;
 
-        // Strict threshold (0.04) to catch small offsets like 80ms
-        const THRESHOLD = 0.04;
+        // Use dynamic threshold from manager
+        const THRESHOLD = this.manager.syncThreshold;
 
         if (Math.abs(diff) > THRESHOLD) {
             console.log(`[Player Drift] Drift: ${diff.toFixed(3)}. Correcting.`);
