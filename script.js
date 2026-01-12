@@ -371,16 +371,12 @@ class SyncPlayer {
         // If creating with empty ID, don't init player yet
         if (!videoId) return;
 
-        // Detect Mobile (iOS/Android)
-        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-        const host = isMobile ? 'https://www.youtube.com' : 'https://www.youtube-nocookie.com';
-
         this.player = new YT.Player(this.uniqueId, {
             height: '100%',
             width: '100%',
             videoId: videoId,
-            host: host,
-            playerVars: { 'playsinline': 1, 'rel': 0, 'autoplay': 0 },
+            host: 'https://www.youtube.com',
+            playerVars: { 'playsinline': 1, 'rel': 0, 'autoplay': 0, 'origin': window.location.origin },
             events: {
                 'onReady': (e) => this.onReady(e),
                 'onStateChange': (e) => this.onStateChange(e),
