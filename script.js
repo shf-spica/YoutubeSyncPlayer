@@ -297,7 +297,9 @@ class SyncPlayer {
         this.playbackRate = 1.0;
         this.targetQuality = 'default';
         this.consecutiveDriftFrames = 0;
+        this.consecutiveDriftFrames = 0;
         this.nudging = false;
+        this.targetVolume = 100; // Store target volume
 
         this.createElement(initialVideoId);
 
@@ -407,6 +409,8 @@ class SyncPlayer {
         // Restore speed setting
         this.setRate(this.playbackRate);
         this.setQuality(this.targetQuality);
+        // Apply volume
+        this.setVolume(this.targetVolume);
     }
 
     onStateChange(e) {
@@ -460,6 +464,7 @@ class SyncPlayer {
 
     setVolume(vol) {
         // vol is 0-100
+        this.targetVolume = vol;
         if (this.player && this.player.setVolume) {
             this.player.setVolume(vol);
         }
