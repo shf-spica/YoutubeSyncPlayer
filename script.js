@@ -14,7 +14,7 @@ function onYouTubeIframeAPIReady() {
     syncManager = new SyncManager();
     // Initialize default players
     syncManager.addPlayer('kbNdx0yqbZE'); // Primary
-    syncManager.addPlayer('fckdimdQ2ak', 680); // Secondary 1
+    syncManager.addPlayer('fckdimdQ2ak', 700); // Secondary 1
 }
 
 /**
