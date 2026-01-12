@@ -480,7 +480,7 @@ class SyncPlayer {
         const diff = myTime - targetTime;
 
         // Cooldown
-        if (Date.now() - this.lastSeekTime < 1000) return;
+        if (Date.now() - this.lastSeekTime < 2000) return;
 
         // Strict threshold (0.04) to catch small offsets like 80ms
         const THRESHOLD = 0.04;
