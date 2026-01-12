@@ -44,18 +44,13 @@
 
             <div class="control-divider"></div>
 
-            <div class="control-group frames">
-                <span class="label">Frame Adjust</span>
-                <button class="btn sm" data-action="frame-back" title="Previous Frame">&lt;</button>
-                <button class="btn sm" data-action="frame-fwd" title="Next Frame">&gt;</button>
-            </div>
-
-            <div class="control-divider"></div>
-
             <div class="control-group threshold">
-                <span class="label">Threshold: <span id="threshold-val">0.04</span>s</span>
-                <input type="range" id="threshold-input" min="0.01" max="0.5" step="0.01" value="0.04"
-                    style="width: 100px;">
+                <span class="label">Threshold:</span>
+                <button class="btn sm" data-action="thresh-dec-10" title="-10ms">-10</button>
+                <input type="number" id="threshold-input-ms" value="40" step="10"
+                    style="width: 60px; text-align: center;">
+                <span style="font-size: 0.8rem; color: #888;">ms</span>
+                <button class="btn sm" data-action="thresh-inc-10" title="+10ms">+10</button>
             </div>
         </footer>
     </div>
@@ -89,7 +84,7 @@
                 <button class="btn sm" data-action="offset-inc-10" title="+10ms">+10</button>
                 <button class="btn sm" data-action="offset-inc-100" title="+100ms">+100</button>
             </div>
-            <div style="text-align: center; font-size: 0.75rem; color: #888; margin-top: 4px;">
+            <div class="sync-hint-text" style="text-align: center; font-size: 0.75rem; color: #888; margin-top: 4px;">
                 Secondary is Late? <span style="color: #4CAF50;">(+)</span> | Early? <span
                     style="color: #FF5252;">(-)</span>
             </div>

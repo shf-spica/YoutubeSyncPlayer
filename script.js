@@ -18,16 +18,17 @@ function onYouTubeIframeAPIReady() {
     let hasParams = false;
     let i = 1;
 
-    // Loop through v1, v2, v3...
-    while (params.has(`v${i}`)) {
-        hasParams = true;
-        const vid = extractVideoId(params.get(`v${i}`));
-        const offset = parseInt(params.get(`o${i}`)) || 0;
+    // Loop through v1 to v10 independently
+    for (let i = 1; i <= 10; i++) {
+        if (params.has(`v${i}`)) {
+            hasParams = true;
+            const vid = extractVideoId(params.get(`v${i}`));
+            const offset = parseInt(params.get(`o${i}`)) || 0;
 
-        if (vid) {
-            syncManager.addPlayer(vid, offset);
+            if (vid) {
+                syncManager.addPlayer(vid, offset);
+            }
         }
-        i++;
     }
 
     // Default Fallback if no URL params
@@ -61,6 +62,7 @@ class SyncManager {
         if (this.players.length === 1) {
             this.primary = player; // First player is always Primary
             player.setLabel("Primary");
+            player.element.classList.add('is-primary');
         } else {
             player.setLabel(`Secondary ${this.players.length - 1}`);
         }
@@ -79,9 +81,13 @@ class SyncManager {
         if (this.players.length > 0) {
             this.primary = this.players[0];
             this.primary.setLabel("Primary");
+            this.primary.element.classList.add('is-primary');
             // Renumber others for clarity
             this.players.forEach((p, i) => {
-                if (i > 0) p.setLabel(`Secondary ${i}`);
+                if (i > 0) {
+                    p.setLabel(`Secondary ${i}`);
+                    p.element.classList.remove('is-primary');
+                }
             });
         } else {
             this.primary = null;
@@ -215,18 +221,34 @@ class SyncManager {
         document.getElementById('btn-play').addEventListener('click', () => this.playAll());
         document.getElementById('btn-pause').addEventListener('click', () => this.pauseAll());
 
-        document.querySelector('[data-action="frame-back"]').addEventListener('click', () => this.broadcastSeek(-FRAME_TIME / 1000));
-        document.querySelector('[data-action="frame-fwd"]').addEventListener('click', () => this.broadcastSeek(FRAME_TIME / 1000));
+        // Sync Threshold Controls (Input is in ms)
+        const threshInputMs = document.getElementById('threshold-input-ms');
 
-        // Sync Threshold Slider
-        const threshInput = document.getElementById('threshold-input');
-        const threshVal = document.getElementById('threshold-val');
-        if (threshInput && threshVal) {
-            threshInput.addEventListener('input', (e) => {
-                const val = parseFloat(e.target.value);
-                this.syncThreshold = val;
-                threshVal.textContent = val.toFixed(2);
+        const updateThreshold = () => {
+            const ms = parseInt(threshInputMs.value) || 0;
+            // Clamp min to 5ms
+            const safeMs = Math.max(5, ms);
+            this.syncThreshold = safeMs / 1000;
+            if (ms !== safeMs) threshInputMs.value = safeMs;
+        };
+
+        if (threshInputMs) {
+            threshInputMs.addEventListener('change', updateThreshold);
+
+            document.querySelector('[data-action="thresh-dec-10"]').addEventListener('click', () => {
+                let val = parseInt(threshInputMs.value) || 0;
+                threshInputMs.value = val - 10;
+                updateThreshold();
             });
+
+            document.querySelector('[data-action="thresh-inc-10"]').addEventListener('click', () => {
+                let val = parseInt(threshInputMs.value) || 0;
+                threshInputMs.value = val + 10;
+                updateThreshold();
+            });
+
+            // Initialize immediately
+            updateThreshold();
         }
     }
 
@@ -486,13 +508,16 @@ class SyncPlayer {
         const diff = myTime - targetTime;
 
         // Cooldown
-        if (Date.now() - this.lastSeekTime < 2000) return;
+        if (Date.now() - this.lastSeekTime < 500) return;
 
         // Use dynamic threshold from manager
         const THRESHOLD = this.manager.syncThreshold;
 
+        // Debug Log (Remove later)
+        // console.log(`[DriftCheck] Diff: ${diff.toFixed(4)} | Threshold: ${THRESHOLD}`);
+
         if (Math.abs(diff) > THRESHOLD) {
-            console.log(`[Player Drift] Drift: ${diff.toFixed(3)}. Correcting.`);
+            console.log(`[Player Drift] Drift: ${diff.toFixed(3)}s > ${THRESHOLD}s. Correcting...`);
             this.syncToPrimary(primaryTime);
         }
 

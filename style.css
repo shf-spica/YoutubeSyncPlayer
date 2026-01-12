@@ -342,3 +342,9 @@ button {
 #spatial-stage.hidden {
     display: none !important;
 }
+
+/* Hide sync controls for Primary player */
+.video-container.is-primary .sync-controls,
+.video-container.is-primary .sync-hint-text {
+    display: none !important;
+}
