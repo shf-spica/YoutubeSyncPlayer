@@ -66,6 +66,8 @@ class SyncManager {
         } else {
             player.setLabel(`Secondary ${this.players.length - 1}`);
         }
+
+        this.updateVolumeNormalization();
     }
 
     removePlayer(uniqueId) {
@@ -92,6 +94,22 @@ class SyncManager {
         } else {
             this.primary = null;
         }
+
+        this.updateVolumeNormalization();
+    }
+
+    updateVolumeNormalization() {
+        const count = this.players.length;
+        if (count === 0) return;
+
+        // Simple linear scaling: 1 player = 100, 2 = 50, 4 = 25...
+        const volume = Math.floor(100 / count);
+
+        console.log(`[Volume] Adjusting to ${volume}% for ${count} players.`);
+
+        this.players.forEach(p => {
+            p.setVolume(volume);
+        });
     }
 
     // Called when Primary state changes
@@ -279,6 +297,7 @@ class SyncPlayer {
         this.playbackRate = 1.0;
         this.targetQuality = 'default';
         this.consecutiveDriftFrames = 0;
+        this.nudging = false;
 
         this.createElement(initialVideoId);
 
@@ -310,6 +329,8 @@ class SyncPlayer {
         this.tapBtn = container.querySelector('.tap-btn');
         this.tapBtn.addEventListener('click', () => this.onTap());
         this.tapInfo = container.querySelector('.tap-info');
+        this.rateDisplay = container.querySelector('.rate-display');
+        this.driftDisplay = container.querySelector('.drift-display');
 
         // New Offset Controls
         this.offsetInput = container.querySelector('.offset-input');
@@ -420,6 +441,10 @@ class SyncPlayer {
         if (this.player && this.player.setPlaybackRate) {
             this.player.setPlaybackRate(rate);
         }
+        if (this.rateDisplay) {
+            this.rateDisplay.textContent = `x${rate.toFixed(2)}`;
+            this.rateDisplay.style.color = rate === 1.0 ? '#aaa' : '#4CAF50';
+        }
     }
 
     setQuality(quality) {
@@ -498,31 +523,93 @@ class SyncPlayer {
     }
 
     checkDrift(primaryTime, primaryRate) {
-        // Don't drift check if buffering or speed mismatch
+        // Don't drift check if buffering or speed mismatch (unless we are nudging)
         if (this.state === YT.PlayerState.BUFFERING) return;
-        if (this.getPlaybackRate() !== primaryRate) return;
+
+        // If we are NOT nudging, and rates differ, it might be a user manual change. Abort.
+        // If we ARE nudging, we expect rates to differ.
+        if (!this.nudging && this.getPlaybackRate() !== primaryRate) return;
 
         // Secondary = Primary + Offset
         const targetTime = primaryTime + (this.syncOffset / 1000);
         const myTime = this.getCurrentTime();
         const diff = myTime - targetTime;
 
-        // Cooldown
-        if (Date.now() - this.lastSeekTime < 500) return;
+        // Cooldown for seek
+        if (Date.now() - this.lastSeekTime < 1000) return;
 
-        // Use dynamic threshold from manager
         const THRESHOLD = this.manager.syncThreshold;
+        const ABS_DIFF = Math.abs(diff);
 
-        // Debug Log (Remove later)
-        // console.log(`[DriftCheck] Diff: ${diff.toFixed(4)} | Threshold: ${THRESHOLD}`);
-
-        if (Math.abs(diff) > THRESHOLD) {
-            console.log(`[Player Drift] Drift: ${diff.toFixed(3)}s > ${THRESHOLD}s. Correcting...`);
-            this.syncToPrimary(primaryTime);
+        // 1. In Sync
+        if (ABS_DIFF <= THRESHOLD) {
+            if (this.nudging) {
+                console.log(`[Sync] Back in sync (${diff.toFixed(3)}s). Resetting rate.`);
+                this.setRate(primaryRate);
+                this.nudging = false;
+            }
+            if (this.timeDisplay) this.timeDisplay.textContent = formatTime(myTime);
+            this.updateDriftDisplay(diff, THRESHOLD);
+            return;
         }
 
-        // Update Time Display
-        if (this.timeDisplay) this.timeDisplay.textContent = formatTime(myTime);
+        // 2. Large Drift (Hard Sync)
+        // If drift is significant (> 250ms), speed adjustment takes too long (e.g. 2.5s to fix 250ms at 10%).
+        // We should just seek to snap it.
+        const HARD_SYNC_THRESHOLD = 0.25;
+
+        if (ABS_DIFF > HARD_SYNC_THRESHOLD) {
+            console.log(`[Sync-Hard] Drift large (${diff.toFixed(3)}s). Seeking...`);
+            this.syncToPrimary(primaryTime);
+            this.nudging = false; // Reset nudging if we hard synced
+            // Reset rate to be safe, though seek might handle it
+            this.setRate(primaryRate);
+            return;
+        }
+
+        // 3. Small Drift (Soft Sync - Speed Adjustment)
+        // We want to catch up or wait.
+        // Diff = MyTime - TargetTime
+        // Positive Diff: I am ahead. Slow down.
+        // Negative Diff: I am behind. Speed up.
+
+        if (!this.nudging) {
+            console.log(`[Sync-Soft] Drift detected (${diff.toFixed(3)}s). Engaging speed correction.`);
+        }
+
+        let correctionRate = primaryRate;
+        const NUDGE_FACTOR = 0.10; // 10% change. 1.0 -> 1.1 or 0.9
+
+        if (diff > 0) {
+            // Ahead: Slow down
+            correctionRate = Math.max(0.25, primaryRate - NUDGE_FACTOR);
+        } else {
+            // Behind: Speed up
+            correctionRate = Math.min(2.0, primaryRate + NUDGE_FACTOR);
+        }
+
+        // Apply
+        this.setRate(correctionRate);
+        this.nudging = true;
+
+        if (this.timeDisplay) this.timeDisplay.textContent = formatTime(myTime); // Update display
+
+        // Update Drift Display (Shared logic for all cases)
+        this.updateDriftDisplay(diff, THRESHOLD);
+    }
+
+    updateDriftDisplay(diff, threshold) {
+        if (!this.driftDisplay) return;
+        const ms = Math.round(diff * 1000);
+        const absDiff = Math.abs(diff);
+
+        this.driftDisplay.textContent = `${ms > 0 ? '+' : ''}${ms}ms`;
+
+        if (absDiff <= threshold) {
+            this.driftDisplay.style.color = '#aaa'; // Sync
+        } else {
+            this.driftDisplay.style.color = '#FF5252'; // Drift
+        }
     }
 }
 

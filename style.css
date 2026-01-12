@@ -33,7 +33,7 @@ button {
     display: flex;
     flex-direction: column;
     height: 100%;
-    max-width: 1600px;
+    /* max-width: 1600px;  Removed for full width */
     margin: 0 auto;
     width: 100%;
 }
@@ -58,16 +58,21 @@ button {
 .video-grid {
     flex: 1;
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    /* grid-template-columns: 1fr 1fr; Old 2-col layout */
+    grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
     gap: var(--spacing);
     padding: var(--spacing);
     overflow-y: auto;
+    align-items: start;
+    /* Prevent cards from stretching vertically */
 }
 
 .video-container {
     background: var(--surface-color);
     border-radius: var(--radius);
-    padding: var(--spacing);
+    border-radius: var(--radius);
+    padding: 12px;
+    display: flex;
     display: flex;
     flex-direction: column;
     gap: 12px;

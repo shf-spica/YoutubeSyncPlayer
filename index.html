@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=3">
 </head>
 
 <body>
@@ -73,10 +73,12 @@
                 <span class="time-display">00:00.000</span>
                 <button class="btn sm accent tap-btn">Tap Sync</button>
                 <span class="tap-info" style="font-size: 0.8em; opacity: 0.7;">--:--</span>
+                <span class="rate-display" style="font-size: 0.8em; color: #aaa; margin-left: 8px;">x1.00</span>
+                <span class="drift-display" style="font-size: 0.8em; color: #aaa; margin-left: 8px;">0ms</span>
             </div>
             <!-- Individual Sync Offset Control -->
             <div class="control-row sync-controls"
-                style="display: flex; align-items: center; gap: 4px; justify-content: center; margin-top: 8px;">
+                style="display: flex; align-items: center; gap: 4px; justify-content: center; margin-top: 4px;">
                 <span style="font-size: 0.8rem; color: #aaa; margin-right: 4px;">Sync:</span>
                 <button class="btn sm" data-action="offset-dec-100" title="-100ms">-100</button>
                 <button class="btn sm" data-action="offset-dec-10" title="-10ms">-10</button>
@@ -84,9 +86,9 @@
                 <button class="btn sm" data-action="offset-inc-10" title="+10ms">+10</button>
                 <button class="btn sm" data-action="offset-inc-100" title="+100ms">+100</button>
             </div>
-            <div class="sync-hint-text" style="text-align: center; font-size: 0.75rem; color: #888; margin-top: 4px;">
-                Secondary is Late? <span style="color: #4CAF50;">(+)</span> | Early? <span
-                    style="color: #FF5252;">(-)</span>
+            <div class="sync-hint-text"
+                style="text-align: center; font-size: 0.7rem; color: #888; margin-top: 2px; margin-bottom: -4px;">
+                Late? <span style="color: #4CAF50;">(+)</span> | Early? <span style="color: #FF5252;">(-)</span>
             </div>
         </div>
     </template>
